@@ -176,6 +176,18 @@ public class TestDoubleArrayTrie {
 	}
 	
 	@Test
+	public void debug(){
+		String s="１３２亿";
+		RangeMapping rm=new RangeMapping();
+		DoubleArrayTrie datrie = new DoubleArrayTrie(
+				new HighFreqRangeCharacterMapping(rm,new VIntAndUtf8(rm)));
+		datrie.coverInsert(s, 1);
+		int[] arr=datrie.find(s, 0);
+		assertEquals(s, s.length(), arr[0]);
+		assertEquals(s,1, arr[1]);
+	}
+	
+	@Test
 	public void testTrieWithHighFreqVIntAndUtf8() throws Exception {
 		RangeMapping rm=new RangeMapping();
 		DoubleArrayTrie datrie = new DoubleArrayTrie(
@@ -183,6 +195,7 @@ public class TestDoubleArrayTrie {
 		List<StringIntPair> dicts = new ArrayList<StringIntPair>();
 		List<String> notInDicts = new ArrayList<String>();
 		this.loadData(dicts, notInDicts, 0.5, false);
+ 
 		for (StringIntPair word : dicts) {
 			datrie.coverInsert(word.s, word.i);
 		}
@@ -342,6 +355,28 @@ public class TestDoubleArrayTrie {
 		System.out.println("trie size: base="+datrie.getBaseSize()+",check="+datrie.getCheckSize());
 	}
 
+	@Test
+	public void testHighFreqFootPrint2() throws Exception {
+		RangeMapping rm=new RangeMapping();
+		DoubleArrayTrie datrie = new DoubleArrayTrie(
+				new HighFreqRangeCharacterMapping(rm,new VIntAndUtf8(rm)));
+		
+		{
+			List<StringIntPair> dicts = new ArrayList<StringIntPair>();
+			List<String> notInDicts = new ArrayList<String>(0);
+			this.loadData(dicts, notInDicts, 1, false);
+			assertEquals(0, notInDicts.size());
+			for (StringIntPair pair : dicts) {
+				datrie.coverInsert(pair.s, pair.i);
+			}
+		}
+		System.gc();
+		long used = Runtime.getRuntime().totalMemory()
+				- Runtime.getRuntime().freeMemory();
+		System.out.println("HighFreq-Datrie2 memory usage: " + used+" bytes");
+		System.out.println("trie size: base="+datrie.getBaseSize()+",check="+datrie.getCheckSize());
+	}
+	
 	@Test
 	public void testTroveHashMapFootPrint() throws Exception {
 		TObjectIntHashMap<String> map=new TObjectIntHashMap<String>();

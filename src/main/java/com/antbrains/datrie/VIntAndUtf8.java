@@ -9,7 +9,10 @@ public class VIntAndUtf8 implements IntEncoder{
 	private static final int[] EMPTYLIST = new int[0];
 	@Override
 	public int[] toIdList(int codePoint) {
-		if(codePoint < MAX){
+		codePoint=mapping.mappingCodepoint(codePoint);
+		if(codePoint==0){
+			return new int[]{256};
+		}else if(codePoint < MAX){
 			return new int[]{
 				(codePoint >>> 8),
 				(codePoint & 0xFF)
@@ -55,7 +58,7 @@ public class VIntAndUtf8 implements IntEncoder{
 			case 2:
 				r[1] = codePoint;
 			}
-			r[0] = 0x8000;
+			r[0] = 128;
 			return r;
 		}
 		 
@@ -70,7 +73,9 @@ public class VIntAndUtf8 implements IntEncoder{
 			int codePoint = paramString.codePointAt(i);
 			charCount = Character.charCount(codePoint);
 			codePoint = mapping.mappingCodepoint(codePoint);
-			if(codePoint < MAX){
+			if(codePoint ==0){
+				array[pos++]=256;
+			}else if(codePoint < MAX){
 				array[pos++]=(codePoint >>> 8);
 				if(array[pos]>=128){
 					System.out.println();
@@ -124,12 +129,22 @@ public class VIntAndUtf8 implements IntEncoder{
 		}
 		int [] r=new int[pos];
 		for(int i:array){
-			if(i>=256){
+			if(i>256){
 				System.out.println(paramString);
 			}
 		}
 		System.arraycopy(array, 0, r, 0, pos);
 		return r;
+	}
+
+	@Override
+	public int zeroId() {
+		return 256;
+	}
+
+	@Override
+	public int getCharSize() {
+		return 257;
 	}
 
 }

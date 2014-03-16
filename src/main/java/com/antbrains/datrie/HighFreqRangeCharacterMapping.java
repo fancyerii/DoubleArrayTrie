@@ -16,17 +16,17 @@ public class HighFreqRangeCharacterMapping implements CharacterMapping {
 
 	@Override
 	public int getInitSize() {
-		return 256;
+		return encoder.getCharSize();
 	}
 
 	@Override
 	public int getCharsetSize() {
-		return 256;
+		return encoder.getCharSize();
 	}
 
 	@Override
 	public int zeroId() {
-		return 0;
+		return encoder.zeroId();
 	}
 	
  

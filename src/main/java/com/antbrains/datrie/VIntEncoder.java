@@ -110,4 +110,16 @@ public class VIntEncoder implements IntEncoder{
 		}
 
 	}
+
+
+	@Override
+	public int zeroId() {
+		return 0;
+	}
+
+
+	@Override
+	public int getCharSize() {
+		return 256;
+	}
 }
