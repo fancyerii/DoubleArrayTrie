@@ -1,5 +1,6 @@
 package com.antbrains.datrie;
 
+@Deprecated
 public class HighFreqRangeCharacterMapping implements CharacterMapping {
 	
 	private IntEncoder encoder;
@@ -155,6 +156,11 @@ public class HighFreqRangeCharacterMapping implements CharacterMapping {
 		String s = "汉字\uD801\uDC00\uD801\uDC00ab\uD801\uDC00\uD801\uDC00cd";
 		int[] bytes1 = hfrcm.toIdList(s);
 		System.out.println(bytes1.length);
+	}
+
+	@Override
+	public String toString(int[] ids) {
+		throw new UnsupportedOperationException();
 	}
 }
 

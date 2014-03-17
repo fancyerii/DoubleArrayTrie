@@ -10,4 +10,6 @@ public interface CharacterMapping {
 	public int[] toIdList(String paramString);
 	
 	public int[] toIdList(int codePoint);
+	
+	public String toString(int[] ids);
 }

@@ -1,12 +1,16 @@
 package com.antbrains.datrie;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+ 	
 public class DoubleArrayTrie implements Serializable {
 	private static final long serialVersionUID = 5586394930559218801L;
 	private static final int leafBit = 1073741824;
@@ -39,12 +43,23 @@ public class DoubleArrayTrie implements Serializable {
 		this.unuseCharValue = charMap.zeroId();
 	}
 	
-	public int getBaseSize(){
-		return base.getSize();
+	public int getBaseArraySize(){
+		return base.size();
 	}
 	
-	public int getCheckSize(){
-		return check.getSize();
+	public int getCheckArraySize(){
+		return check.size();
+	}
+	
+	public int getFreeSize(){
+		int count=0;
+		int chk=this.check.get(0);
+		while(chk!=0){
+			count++;
+			chk=this.check.get(-chk);
+		}
+		
+		return count;
 	}
 
 	private boolean isLeaf(int value) {
@@ -59,8 +74,8 @@ public class DoubleArrayTrie implements Serializable {
 		return value ^ 0x40000000;
 	}
 
-	public int getSize() {
-		return this.base.getSize();
+	private int getBaseSize() {
+		return this.base.size();
 	}
 
 	private int getBase(int position) {
@@ -91,7 +106,7 @@ public class DoubleArrayTrie implements Serializable {
 			}
 			pos = -getCheck(pos);
 		}
-		int oldSize = getSize();
+		int oldSize = getBaseSize();
 		expandArray(oldSize + this.base.getExpandFactor());
 		return oldSize;
 	}
@@ -109,7 +124,7 @@ public class DoubleArrayTrie implements Serializable {
 	}
 
 	private void expandArray(int maxSize){
-		int curSize = getSize();
+		int curSize = getBaseSize();
 		if (curSize > maxSize) {
 			return;
 		}
@@ -148,7 +163,7 @@ public class DoubleArrayTrie implements Serializable {
 
 				setCheck(toState, fromState);
 				if (ind == ids.length - 1) {
-					this.number += 1;
+					this.number++;
 					setBase(toState, value);
 				} else {
 					int nextChar = ids[(ind + 1)];
@@ -178,7 +193,7 @@ public class DoubleArrayTrie implements Serializable {
 				boolean ok = true;
 				for (Iterator<Integer> itr = children.iterator(); itr.hasNext();) {
 					int toPos = tempBase + ((Integer) itr.next()).intValue();
-					if (toPos >= getSize()) {
+					if (toPos >= getBaseSize()) {
 						ok = false;
 						break;
 					}
@@ -193,21 +208,21 @@ public class DoubleArrayTrie implements Serializable {
 			}
 			cur = -getCheck(cur);
 		}
-		int oldSize = getSize();
+		int oldSize = getBaseSize();
 		expandArray(oldSize + maxChild);
 		return oldSize;
 	}
 
 	private void solveConflict(int parent, int newChild){
-		TreeSet<Integer> children = new TreeSet<>();
+		TreeSet<Integer> children = new TreeSet<Integer>();
 
 		children.add(new Integer(newChild));
 		for (int c = 0; c < this.charMap.getCharsetSize(); c++) {
 			int tempNext = getBase(parent) + c;
-			if (tempNext >= getSize()) {
+			if (tempNext >= getBaseSize()) {
 				break;
 			}
-			if ((tempNext < getSize()) && (getCheck(tempNext) == parent)) {
+			if ((tempNext < getBaseSize()) && (getCheck(tempNext) == parent)) {
 				children.add(new Integer(c));
 			}
 		}
@@ -227,10 +242,10 @@ public class DoubleArrayTrie implements Serializable {
 			if (!isLeaf(childBase)) {
 				for (int d = 0; d < this.charMap.getCharsetSize(); d++) {
 					int nextPos = childBase + d;
-					if (nextPos >= getSize()) {
+					if (nextPos >= getBaseSize()) {
 						break;
 					}
-					if ((nextPos < getSize())
+					if ((nextPos < getBaseSize())
 							&& (getCheck(nextPos) == getBase(parent) + c)) {
 						setCheck(nextPos, newBase + c);
 					}
@@ -241,7 +256,7 @@ public class DoubleArrayTrie implements Serializable {
 		setBase(parent, newBase);
 	}
 
-	public int getNumbers() {
+	public int size() {
 		return this.number;
 	}
 
@@ -251,6 +266,71 @@ public class DoubleArrayTrie implements Serializable {
 
 	public boolean uncoverInsert(String str, int value) {
 		return insert(str, value, false);
+	}
+	
+	private final static List<String> EMPYT_LIST;
+	static{
+		EMPYT_LIST=Collections.unmodifiableList(new ArrayList<String>(0));
+	}
+	public List<String> prefixMatch(String prefix){
+		int curState = 1;
+		IntArrayList bytes=new IntArrayList(prefix.length()*4);
+		for (int i = 0; i < prefix.length(); i++) {
+			int codePoint=prefix.charAt(i);
+			if (curState < 1) {
+				return EMPYT_LIST;
+			}
+			if ((curState != 1) && (isEmpty(curState))) {
+				return EMPYT_LIST;
+			}
+			int[] ids = this.charMap.toIdList(codePoint);
+			if (ids.length == 0) {
+				return EMPYT_LIST;
+			}
+			for (int j = 0; j < ids.length; j++) {
+				int c = ids[j];
+				if ((getBase(curState) + c < getBaseSize())
+						&& (getCheck(getBase(curState) + c) == curState)) {
+					bytes.add(c);
+					curState = getBase(curState) + c;
+				} else {
+					return EMPYT_LIST;
+				}
+			}
+			
+		}
+		List<String> result=new ArrayList<String>();
+		recurAddSubTree(curState, result, bytes);
+		
+		return result;
+	}
+	
+	private void recurAddSubTree(int curState,List<String> result,IntArrayList bytes){
+		if (getCheck(getBase(curState) + this.unuseCharValue) == curState) {
+			byte[] array=new byte[bytes.size()];
+			for(int i=0;i<bytes.size();i++){
+				array[i]=(byte)bytes.get(i);
+			}
+			try {
+				result.add(new String(array,"UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				
+			}
+		}
+		int base=getBase(curState);
+		for(int c=0;c<charMap.getCharsetSize();c++){
+			if(c==unuseCharValue) continue;
+			int check=getCheck(base+c);
+			if(base+c<getBaseSize() && check == curState){
+				bytes.add(c);
+				recurAddSubTree(base+c, result, bytes);
+				bytes.removeLast();
+			}
+		}
+	}
+	
+	public void prefixMatch(String prefix,List<String> result,List<Integer> payloads){
+		
 	}
 
 	public int[] find(String query, int start) {
@@ -300,7 +380,7 @@ public class DoubleArrayTrie implements Serializable {
 	}
 	
 	public List<int[]> findAllWithSupplementary(String query, int start) {
-		List<int[]> ret = new ArrayList<>(5);
+		List<int[]> ret = new ArrayList<int[]>(5);
 		if ((query == null) || (start >= query.length())) {
 			return ret;
 		}
@@ -322,7 +402,7 @@ public class DoubleArrayTrie implements Serializable {
 	}
 
 	public List<int[]> findAll(String query, int start) {
-		List<int[]> ret = new ArrayList<>(5);
+		List<int[]> ret = new ArrayList<int[]>(5);
 		if ((query == null) || (start >= query.length())) {
 			return ret;
 		}
@@ -357,7 +437,7 @@ public class DoubleArrayTrie implements Serializable {
 		}
 		for (int i = 0; i < ids.length; i++) {
 			int c = ids[i];
-			if ((getBase(curState) + c < getSize())
+			if ((getBase(curState) + c < getBaseSize())
 					&& (getCheck(getBase(curState) + c) == curState)) {
 				curState = getBase(curState) + c;
 			} else {
@@ -383,7 +463,7 @@ public class DoubleArrayTrie implements Serializable {
 		int i=0;
 		for (; i < ids.length; i++) {
 			int c = ids[i];
-			if ((getBase(curState) + c >= getSize())
+			if ((getBase(curState) + c >= getBaseSize())
 					|| (getCheck(getBase(curState) + c) != curState)) {
 				break;
 			}
@@ -393,7 +473,7 @@ public class DoubleArrayTrie implements Serializable {
 		int ret = -1;
 		if (i == ids.length) {
 			if (getCheck(getBase(curState) + this.unuseCharValue) == curState) {
-				this.number -= 1;
+				this.number--;
 				ret = getLeafValue(getBase(getBase(curState)
 						+ this.unuseCharValue));
 				path[(path.length - 1)] = (getBase(curState) + this.unuseCharValue);
@@ -404,7 +484,7 @@ public class DoubleArrayTrie implements Serializable {
 						if (isLeaf(getBase(state))) {
 							break;
 						}
-						if ((getBase(state) + k < getSize())
+						if ((getBase(state) + k < getBaseSize())
 								&& (getCheck(getBase(state) + k) == state)) {
 							isLeaf = false;
 							break;
@@ -422,7 +502,7 @@ public class DoubleArrayTrie implements Serializable {
 
 	public int getEmptySize() {
 		int cnt = 0;
-		for (int i = 0; i < getSize(); i++) {
+		for (int i = 0; i < getBaseSize(); i++) {
 			if (isEmpty(i)) {
 				cnt++;
 			}
@@ -432,5 +512,128 @@ public class DoubleArrayTrie implements Serializable {
 
 	public int getMaximumValue() {
 		return leafBit-1;
+	}
+	
+	/**
+	 * can't modified after get iterator
+	 * or else the behavior is undefined.
+	 * @return
+	 */
+	public DatrieIterator iterator(){
+		return new Itr();
+	}
+	
+	private class Itr implements DatrieIterator{
+		private IntArrayList path;
+		private int curCount;
+		private int value=-1;
+		private String key=null;
+		private int bs;
+		public Itr(){
+			path=new IntArrayList(20);
+			path.add(1);
+			int st=1;
+			int b=base.get(st);
+			if(number>0){
+				while(true){
+					for(int i=0;i<charMap.getCharsetSize();i++){
+						int c=check.get(b+i);
+						if(c==st){
+							path.add(i);
+							//path.add(c);
+							st=b+i;
+							path.add(st);
+							b=base.get(st);
+							if (getCheck(b + unuseCharValue) == st) {
+								value = getLeafValue(getBase(b + unuseCharValue));
+								int[] ids=new int[path.size()/2];
+								for(int k=0,j=1;j<path.size();k++,j+=2){
+									ids[k]=path.get(j);
+								}
+								key = charMap.toString(ids);
+								path.add(unuseCharValue);
+								bs=b;
+								return;
+							}
+						}
+					}
+					
+				}
+			}
+		}
+		@Override
+		public String key() {
+			return key;
+		}
+
+		@Override
+		public int value() {
+			return value;
+		}
+
+		@Override
+		public int setValue(int v) {
+			int value=getLeafValue(v);
+			setBase(bs+unuseCharValue,value);
+			this.value=v;
+			return v;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return curCount<number;
+		}
+
+		@Override
+		public void next() {
+			if(curCount>=number){
+				throw new NoSuchElementException();
+			}else if(curCount==0){
+			}else{
+				while(path.size()>0){
+					int ch=path.pop();
+					int s=path.getLast();
+					int n=getNext(s,ch);
+					if(n!=-1) break;
+					path.removeLast();
+				}
+			}
+
+			
+			
+			curCount++;
+		}
+		
+		private int getNext(int s,int ch){
+			int startChar=ch+1;
+			int b=getBase(s);
+			int st=s;
+
+			for(int i=startChar;i<charMap.getCharsetSize();i++){
+				int c=check.get(b+i);
+				if(c==st){
+					path.add(i);
+					st=b+i;
+					path.add(st);
+					b=base.get(st);
+					startChar=0;
+					if (getCheck(b + unuseCharValue) == st) {
+						value = getLeafValue(getBase(b + unuseCharValue));
+						int[] ids=new int[path.size()/2];
+						for(int k=0,j=1;j<path.size();k++,j+=2){
+							ids[k]=path.get(j);
+						}
+						key = charMap.toString(ids);
+						path.add(unuseCharValue);
+						bs=b;
+						return st;
+					}else{
+						return getNext(st,0);
+					}
+				}
+			}
+			return -1;
+			
+		}
 	}
 }

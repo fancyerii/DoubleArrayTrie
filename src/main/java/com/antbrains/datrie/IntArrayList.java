@@ -28,7 +28,7 @@ public class IntArrayList implements Serializable {
 		this.count += 1;
 	}
 
-	public int getSize() {
+	public int size() {
 		return this.count;
 	}
 
@@ -44,4 +44,15 @@ public class IntArrayList implements Serializable {
 		return this.data[pos];
 	}
 	
+	public void removeLast(){
+		count--;
+	}
+	
+	public int getLast(){
+		return data[count-1];
+	}
+	
+	public int pop(){
+		return data[--count];
+	}
 }
