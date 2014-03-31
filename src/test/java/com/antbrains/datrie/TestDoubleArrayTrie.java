@@ -222,6 +222,56 @@ public class TestDoubleArrayTrie {
 	}
 	
 	@Test
+	public void testMaxMatchSegment(){
+		DoubleArrayTrie datrie=new DoubleArrayTrie();
+		String[] dicts=new String[]{
+			"今天",
+			"天气",
+			"非常"
+		};
+		for(String word:dicts){
+			datrie.coverInsert(word, 0);
+		}
+		String sen="今天的天气真的是非常好啊";
+		for(int idx=0;idx<sen.length();){
+			int[] res=datrie.find(sen, idx);
+			if(res[0]>0){
+				System.out.print(sen.substring(idx, idx+res[0])+"\t");
+				idx+=res[0];
+			}else{
+				System.out.print(sen.substring(idx,idx+1)+"\t");
+				idx++;
+			}
+		}
+		System.out.println();
+	}
+	
+	@Test
+	public void testValue(){
+		DoubleArrayTrie datrie=new DoubleArrayTrie();
+		String[] dicts=new String[]{
+			"今天",
+			"天气",
+			"非常"
+		};
+		int idx=0;
+		for(String word:dicts){
+			datrie.coverInsert(word, idx++);
+		}
+		int[] res=datrie.find("今天", 0);
+		assertEquals(2, res[0]);
+		assertEquals(0, res[1]);
+		
+		res=datrie.find("非常", 0);
+		assertEquals(2, res[0]);
+		assertEquals(2, res[1]);
+		
+		
+		res=datrie.find("中国", 0);
+		assertEquals(0, res[0]);
+	}
+	
+	@Test
 	public void testHashMapBuildSpeed() throws Exception {
 		long start=System.currentTimeMillis();
 		List<StringIntPair> dicts = new ArrayList<StringIntPair>();
@@ -454,8 +504,6 @@ public class TestDoubleArrayTrie {
 		System.out.println("free="+datrie.getFreeSize());
 	}
 	
- 
-	
 	public void testHighFreqFootPrint() throws Exception {
 		DoubleArrayTrie datrie = new DoubleArrayTrie(
 				new HighFreqRangeCharacterMapping());
@@ -474,7 +522,7 @@ public class TestDoubleArrayTrie {
 		System.out.println("HighFreq-Datrie memory usage: " + used+" bytes");
 		System.out.println("trie size: base="+datrie.getBaseArraySize()+",check="+datrie.getCheckArraySize());
 	}
-	
+
 	public void testHighFreqFootPrint2() throws Exception {
 		RangeMapping rm=new RangeMapping();
 		DoubleArrayTrie datrie = new DoubleArrayTrie(
@@ -572,7 +620,9 @@ public class TestDoubleArrayTrie {
 			String line;
 			br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 			while ((line = br.readLine()) != null) {
-				lines.add(line);
+				if(!line.equals("")){
+					lines.add(line);
+				}
 			}
 			if (shuffle) {
 				Collections.shuffle(lines);

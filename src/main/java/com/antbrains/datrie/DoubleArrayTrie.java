@@ -23,7 +23,23 @@ public class DoubleArrayTrie implements Serializable {
 	IntArrayList check;
 	IntArrayList base;
 	private int number;
-
+	
+	
+	public void setMultiplyExpanding(boolean multiplyExpanding){
+		check.setMultiplyExpanding(multiplyExpanding);
+		base.setMultiplyExpanding(multiplyExpanding);
+	}
+	
+	public void setMultiply(double multiply){
+		check.setMultiply(multiply);
+		base.setMultiply(multiply);
+	}
+	
+	public void setExpandingFactor(int ef){
+		check.setExpandFactor(ef);
+		base.setExpandFactor(ef);
+	}
+	
 	public DoubleArrayTrie(){
 		this(new Utf8CharacterMapping());
 	}
@@ -139,7 +155,7 @@ public class DoubleArrayTrie implements Serializable {
 	}
 
 	private boolean insert(String str, int value, boolean cover) {
-		if ((null == str) || (str.contains(String.valueOf(this.unuseChar)))) {
+		if ((null == str) || str.length()==0 || (str.contains(String.valueOf(this.unuseChar)))) {
 			return false;
 		}
 		if ((value < 0) || ((value & 0x40000000) != 0)) {
@@ -148,7 +164,7 @@ public class DoubleArrayTrie implements Serializable {
 		value = setLeafValue(value);
 
 		int[] ids = this.charMap.toIdList(str + this.unuseChar);
-
+		
 		int fromState = 1;
 		int toState = 1;
 		int ind = 0;
@@ -156,7 +172,7 @@ public class DoubleArrayTrie implements Serializable {
 			int c = ids[ind];
 			
 			toState = getBase(fromState) + c;
-
+			
 			expandArray(toState);
 			if (isEmpty(toState)) {
 				delFreeLink(toState);
@@ -227,7 +243,7 @@ public class DoubleArrayTrie implements Serializable {
 			}
 		}
 		int newBase = moveChildren(children);
-
+		
 		children.remove(new Integer(newChild));
 		for (Integer child : children) {
 			int c = child.intValue();
